@@ -413,8 +413,11 @@ Outcome<Observatory> Observatory::open(const ObservatoryOptions& options) {
                         const std::lock_guard<std::mutex> guard(pointer->queue_mutex);
                         pointer->busy_sources.erase(item->parts.provenance.source());
                     }
-                    pointer->pending.fetch_sub(1);
+                    // The attempt is settled before the pending count falls, so a
+                    // caller waiting for the queue to empty cannot be released
+                    // while an answer is still being written.
                     Impl::settle(item->ticket, std::move(outcome));
+                    pointer->pending.fetch_sub(1);
                     pointer->tickets_condition.notify_all();
                     pointer->queue_condition.notify_all();
                 }

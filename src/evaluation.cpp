@@ -140,6 +140,10 @@ private:
     std::optional<Instant> service_entry_;
     bool findings_truncated_ = false;
     std::size_t suppressed_findings_ = 0;
+    /// The last finding that was actually recorded, and a scratch finding that
+    /// absorbs the follow-up work of one that was dropped at the bound.
+    Finding* last_written_ = nullptr;
+    Finding discarded_;
 };
 
 void Evaluation::raise_finding_limit() {
@@ -151,6 +155,12 @@ void Evaluation::add_finding(FindingCode code, FindingSeverity severity, HealthS
                              FindingDisposition disposition, std::string detail) {
     if (assessment_.findings.size() >= limits::kMaxFindingsPerAssessment) {
         raise_finding_limit();
+        // The finding was not recorded, and the caller's follow-up work -- naming
+        // the component, attaching the statements -- must not land on whichever
+        // finding happens to be last. last_finding() returns a scratch finding
+        // instead, so a dropped finding cannot mis-attribute evidence to another
+        // one.
+        last_written_ = nullptr;
         return;
     }
     Finding finding;
@@ -160,9 +170,10 @@ void Evaluation::add_finding(FindingCode code, FindingSeverity severity, HealthS
     finding.disposition = disposition;
     finding.detail = std::move(detail);
     assessment_.findings.push_back(std::move(finding));
+    last_written_ = &assessment_.findings.back();
 }
 
-Finding& Evaluation::last_finding() { return assessment_.findings.back(); }
+Finding& Evaluation::last_finding() { return last_written_ != nullptr ? *last_written_ : discarded_; }
 
 void Evaluation::note(EvidenceId id) {
     if (std::find(dependency_ids_.begin(), dependency_ids_.end(), id) == dependency_ids_.end()) {

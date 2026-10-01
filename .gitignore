@@ -65,3 +65,4 @@ benchmark-results/
 *.bak
 *.tmp
 *~
+\n# Logs and captured output from a local run.\n*-log.txt\n*.out\n*.err
