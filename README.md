@@ -1,6 +1,6 @@
 # Asset Health Observatory
 
-Evidence-bound facility asset health observation for the DCCP control plane.
+Evidence-bound facility asset health observation.
 
 Given the evidence an operator, an adjacent authority, or an instrument has
 published about a physical asset, this runtime answers one question: **what health
